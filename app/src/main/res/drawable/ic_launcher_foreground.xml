@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- The diary: a small dark book, closed. -->
+    <path
+        android:fillColor="#241B12"
+        android:pathData="M34,25 L70,25 A4,4 0 0 1 74,29 L74,79 A4,4 0 0 1 70,83 L34,83 Z" />
+    <!-- Spine. -->
+    <path
+        android:fillColor="#12402B"
+        android:pathData="M34,25 L40,25 L40,83 L34,83 Z" />
+    <!-- Ink seeping into the cover. -->
+    <path
+        android:fillColor="#EFE3C8"
+        android:pathData="M57,44 m-7,0 a7,7 0 1,0 14,0 a7,7 0 1,0 -14,0" />
+    <path
+        android:fillColor="#EFE3C8"
+        android:pathData="M57,53 C54,60 52,64 55,70 C58,64 56,60 57,53 Z" />
+</vector>

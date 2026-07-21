@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Aged parchment: warmer and yellower than plain paper, so the page reads as old. -->
+    <color name="ink_background">#EFE3C8</color>
+    <!-- Your own hand: iron-gall quill ink, near black with a brown cast. -->
+    <color name="ink_stroke">#241B12</color>
+    <!-- The diary's hand: a deep green ink, so its writing is never mistaken for yours. -->
+    <color name="ink_reply">#12402B</color>
+    <!-- Edges of the page, for the vignette. -->
+    <color name="parchment_edge">#8A6E45</color>
+    <color name="icon_background">#EFE3C8</color>
+</resources>

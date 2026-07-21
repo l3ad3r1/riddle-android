@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">The Diary</string>
+    <string name="settings_title">The Diary</string>
+    <string name="hint_api_key">API key</string>
+    <string name="hint_base_url">Base URL (OpenAI-compatible)</string>
+    <string name="hint_model">Model</string>
+    <string name="save">Save</string>
+    <string name="thinking">…</string>
+    <string name="error_no_key">The page stays silent. Set an API key in Settings.</string>
+    <!-- Failures are written at the foot of the page; your writing is kept. Rest the pen to try again. -->
+    <string name="error_offline">No answer reaches me. The world beyond this page is out of earshot.</string>
+    <string name="error_timeout">I listened a long while, and nothing came. Rest your pen again and I will try once more.</string>
+    <string name="error_key_refused">Your key was refused. Look to it in Settings.</string>
+    <string name="error_too_soon">Too many questions, too quickly. Let the ink settle a moment.</string>
+    <string name="error_generic">Something came between us: %1$s</string>
+    <!-- Summoned by drawing a large "?" alone on the page. Kept short so it fits without scrolling. -->
+    <!-- Escapes are required: a literal newline in a string resource collapses to a space. -->
+    <string name="guide_text">Write, then rest your pen. I read the page and answer here.\nWrite again while I am thinking, and I begin afresh.\nTurn your pen over to erase.\nAsk me: what do you remember?\nOr: show me what I wrote about the garden.\nPress and hold the mark in the corner for settings.\nDraw a ? for this page. Touch the pen to return.</string>
+    <string name="memory_enabled">Remember past pages</string>
+    <string name="forget_all">Forget everything</string>
+    <string name="memory_count">%1$d pages remembered, on this tablet only</string>
+    <string name="memory_off">Nothing is stored, and no past pages are sent.</string>
+    <string name="forget_confirm_title">Forget everything?</string>
+    <string name="forget_confirm_body">Every remembered page will be deleted from this tablet. This cannot be undone.</string>
+    <string name="forget_confirm_yes">Forget</string>
+    <string name="cancel">Cancel</string>
+</resources>
