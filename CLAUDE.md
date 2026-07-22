@@ -104,20 +104,20 @@ app. Force-stopping and relaunching clears the stuck state.
 
 ## Verified on device (2026-07-21)
 
-Installed and exercised end-to-end on the user's **TCL 9469X (Bellona_WF_GL), Android 15, arm64-v8a**
-over wireless adb. Confirmed working: T-Pen input arrives as `TOOL_TYPE_STYLUS` in `InkSurfaceView`,
-idle-commit fires, page rasterizes, vision call returns, reply reveals in cursive. The model's reply
-referenced the actual number of strokes on the page, confirming the image is really being read.
+Installed and exercised end-to-end on a **TCL 9469X (Bellona_WF_GL), Android 15, arm64-v8a**.
+Confirmed working: T-Pen input arrives as `TOOL_TYPE_STYLUS` in `InkSurfaceView`, idle-commit fires,
+page rasterizes, vision call returns, reply reveals in the diary's hand. The model's reply referenced
+the actual number of strokes on the page, confirming the image is really being read.
 
 Two things learned the hard way — keep them in mind before "fixing" the timeouts back down:
 
-- The user's configured oracle is **NVIDIA NIM** (`https://integrate.api.nvidia.com/v1`) with
-  `google/gemma-4-31b-it`, and it answered in **~79 s**. The original 60 s `readTimeout` aborted a
-  request that would have succeeded, surfacing as "The diary could not answer: timeout". Timeouts are
-  now 15 s connect / 30 s write / 90 s read. A slow endpoint is the norm here, not an anomaly.
-- The endpoint's latency is **wildly variable**: measured 30 s, 79 s, and >90 s (timeout) for the same
+- A free-tier vision endpoint answered in **~79 s**. The original 60 s `readTimeout` aborted a request
+  that would have succeeded, surfacing as "The diary could not answer: timeout". Timeouts are now
+  15 s connect / 30 s write / 180 s read. A slow endpoint is the norm here, not an anomaly — and the
+  long read timeout is safe because the pen can interrupt at any moment.
+- Endpoint latency can be **wildly variable**: measured 30 s, 79 s, and >90 s (timeout) for the same
   prompt on consecutive runs. It is a queue, not a steady round-trip. Don't tune timeouts against a
-  single sample, and don't conclude the endpoint "doesn't stream" from one silent run — it does.
+  single sample, and don't conclude an endpoint "doesn't stream" from one silent run — it may well.
 
 `OracleClient` logs to tag **`DiaryOracle`** (endpoint, model, PNG/payload size, response code,
 elapsed ms, exception class) — never the API key. `adb logcat -s DiaryOracle` is the fastest way to
