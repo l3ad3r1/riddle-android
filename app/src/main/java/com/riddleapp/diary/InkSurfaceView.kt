@@ -75,6 +75,9 @@ class InkSurfaceView @JvmOverloads constructor(
                 revealedPoints += if (state == State.GUIDE) POINTS_PER_TICK * 4 else POINTS_PER_TICK
                 invalidate()
             } else if (replyComplete) {
+                // Written out in full. A reply is then left to be read and allowed to sink away;
+                // the guide and a failure notice stay until the pen dismisses them.
+                if (state == State.REPLYING) scheduleReplyFade()
                 return
             }
             handler.postDelayed(this, REVEAL_TICK_MS)
@@ -118,8 +121,22 @@ class InkSurfaceView @JvmOverloads constructor(
         strokeJoin = Paint.Join.ROUND
     }
 
-    private val replyTypeface: Typeface =
-        ResourcesCompat.getFont(context, R.font.dancing_script) ?: Typeface.create("cursive", Typeface.NORMAL)
+    /**
+     * The reply hand. Prefers an optional local font — drop `aquiline.ttf` into `res/font/` and it is
+     * used automatically — otherwise the bundled Dancing Script. Looked up by name rather than by
+     * `R.font.aquiline` so the project still builds when that file is absent, which it is in the
+     * public repository: the font ships without licence information, so it is not redistributed.
+     */
+    private val replyTypeface: Typeface = loadReplyTypeface(context)
+
+    private fun loadReplyTypeface(context: Context): Typeface {
+        val optional = resources.getIdentifier("aquiline", "font", context.packageName)
+        if (optional != 0) {
+            runCatching { ResourcesCompat.getFont(context, optional) }.getOrNull()?.let { return it }
+        }
+        return ResourcesCompat.getFont(context, R.font.dancing_script)
+            ?: Typeface.create("cursive", Typeface.NORMAL)
+    }
 
     private val replyGlyphs = GlyphStrokes(replyTypeface, REPLY_TEXT_PX * resources.displayMetrics.density)
     private val replyScript = ReplyScript(replyGlyphs)
@@ -128,6 +145,10 @@ class InkSurfaceView @JvmOverloads constructor(
     private var replyStrokes: List<ReplyScript.Stroke> = emptyList()
     private var revealedPoints = 0
     private var layoutJob: Job? = null
+
+    /** The reply's own ink, which sinks back into the paper once it has been written and read. */
+    private var replyAlpha = 255
+    private var replyFadeAnimator: ValueAnimator? = null
 
     /** A conjured page: the original pen strokes, and how much of them has surfaced. */
     private var recalledStrokes: List<List<Triple<Float, Float, Float>>> = emptyList()
@@ -377,6 +398,34 @@ class InkSurfaceView @JvmOverloads constructor(
     }
 
     /**
+     * Holds the finished reply long enough to be read, then lets it sink back into the paper,
+     * leaving a blank page. The hold scales with length, because a long answer needs longer.
+     */
+    private fun scheduleReplyFade() {
+        if (replyFadeAnimator != null) return
+        val hold = (REPLY_HOLD_BASE_MS + replyText.length * REPLY_HOLD_PER_CHAR_MS)
+            .coerceAtMost(REPLY_HOLD_MAX_MS)
+        replyFadeAnimator = ValueAnimator.ofInt(255, 0).apply {
+            startDelay = hold
+            duration = REPLY_FADE_MS
+            addUpdateListener {
+                replyAlpha = it.animatedValue as Int
+                invalidate()
+            }
+            addListener(object : android.animation.AnimatorListenerAdapter() {
+                override fun onAnimationEnd(animation: android.animation.Animator) {
+                    // Only clear if the pen has not already moved the page on to something else.
+                    if (state == State.REPLYING) {
+                        startNewPage()
+                        invalidate()
+                    }
+                }
+            })
+            start()
+        }
+    }
+
+    /**
      * The oracle could not answer. Your writing stays exactly where it was — losing a page after a
      * long wait is the worst thing this app can do — and the reason is written at the foot of it.
      * Touch the pen to carry on writing; resting it again sends the same page anew.
@@ -467,6 +516,9 @@ class InkSurfaceView @JvmOverloads constructor(
         replyText = text
         revealedPoints = 0
         replyStrokes = emptyList()
+        replyFadeAnimator?.cancel()
+        replyFadeAnimator = null
+        replyAlpha = 255
         handler.removeCallbacks(thinkingRunnable)
         handler.removeCallbacks(revealRunnable)
         handler.post(revealRunnable)
@@ -526,6 +578,9 @@ class InkSurfaceView @JvmOverloads constructor(
         replyTopOverride = null
         replyStrokes = emptyList()
         revealedPoints = 0
+        replyFadeAnimator?.cancel()
+        replyFadeAnimator = null
+        replyAlpha = 255
         replyText = ""
         replyComplete = false
         fadeAlpha = 255
@@ -622,7 +677,13 @@ class InkSurfaceView @JvmOverloads constructor(
                     thinkingPaint,
                 )
             }
-            State.REPLYING, State.GUIDE -> drawReplyStrokes(canvas)
+            State.REPLYING -> {
+                replyPaint.alpha = replyAlpha
+                drawReplyStrokes(canvas)
+                replyPaint.alpha = 255
+            }
+
+            State.GUIDE -> drawReplyStrokes(canvas)
 
             // Your page, intact, with the reason written at the foot of it.
             State.FAILED -> {
@@ -679,7 +740,13 @@ class InkSurfaceView @JvmOverloads constructor(
 
         /** Reply ink is revealed a few skeleton points per frame, so it reads as a moving pen. */
         private const val REVEAL_TICK_MS = 16L
-        private const val POINTS_PER_TICK = 14
+        private const val POINTS_PER_TICK = 10
+
+        /** How long a finished reply is left to be read before it sinks back into the paper. */
+        private const val REPLY_HOLD_BASE_MS = 4_000L
+        private const val REPLY_HOLD_PER_CHAR_MS = 45L
+        private const val REPLY_HOLD_MAX_MS = 25_000L
+        private const val REPLY_FADE_MS = 3_500L
         private const val REPLY_TEXT_PX = 30f
         private const val REPLY_LINE_SPACING = 1.5f
         private const val REPLY_MARGIN_DP = 56f

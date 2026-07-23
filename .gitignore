@@ -16,3 +16,7 @@
 .cxx
 local.properties
 *.jks
+
+# Optional local reply font: ships without licence information, so it is not redistributed.
+# Drop it in and the diary uses it; without it, the bundled Dancing Script is used.
+app/src/main/res/font/aquiline.ttf
