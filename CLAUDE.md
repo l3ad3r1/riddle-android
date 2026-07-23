@@ -132,6 +132,23 @@ persuasive, curious, with a faint chill; it is written in original wording and i
 to claim to be any character from a book or film. This is a personal fan-flavoured app: keep it
 evocative, don't brand it with someone else's trademarks.
 
+### The reply is written, then sinks away
+
+A finished reply is held to be read and then fades out, leaving a blank page — riddle's "answers in a
+flowing hand, stroke by stroke, then fades away". `scheduleReplyFade` in `InkSurfaceView` holds for
+`REPLY_HOLD_BASE_MS + length * REPLY_HOLD_PER_CHAR_MS` (capped), then animates `replyAlpha` to zero
+and calls `startNewPage`.
+
+The hold is **deliberately generous** — the timings here were raised once already after they read as
+too quick on the tablet. The cost is asymmetric: the pen clears the page the instant you want to
+write, so an over-long hold costs nothing, while a short one takes words away mid-sentence. Note the
+**cap** silently governs long replies; raising the per-character figure alone does nothing once it
+binds.
+
+Only `REPLYING` fades. The **? guide** and a **failure notice** stay until the pen dismisses them —
+reference and recovery must not evaporate while being read or retried — and recall follows riddle in
+waiting for the pen.
+
 ### The ? guide
 
 Drawing a large **?** alone on a page summons `State.GUIDE` — the diary's own instructions, written

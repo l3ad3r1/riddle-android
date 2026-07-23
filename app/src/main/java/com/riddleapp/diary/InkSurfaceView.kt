@@ -742,11 +742,15 @@ class InkSurfaceView @JvmOverloads constructor(
         private const val REVEAL_TICK_MS = 16L
         private const val POINTS_PER_TICK = 10
 
-        /** How long a finished reply is left to be read before it sinks back into the paper. */
-        private const val REPLY_HOLD_BASE_MS = 4_000L
-        private const val REPLY_HOLD_PER_CHAR_MS = 45L
-        private const val REPLY_HOLD_MAX_MS = 25_000L
-        private const val REPLY_FADE_MS = 3_500L
+        /**
+         * How long a finished reply is left to be read before it sinks back into the paper. Erring
+         * long on purpose: the pen clears the page the moment you want to write, so waiting too long
+         * costs nothing, while fading too early takes words away mid-sentence.
+         */
+        private const val REPLY_HOLD_BASE_MS = 12_000L
+        private const val REPLY_HOLD_PER_CHAR_MS = 110L
+        private const val REPLY_HOLD_MAX_MS = 75_000L
+        private const val REPLY_FADE_MS = 5_000L
         private const val REPLY_TEXT_PX = 30f
         private const val REPLY_LINE_SPACING = 1.5f
         private const val REPLY_MARGIN_DP = 56f
