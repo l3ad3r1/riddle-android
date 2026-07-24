@@ -9,4 +9,10 @@
     <!-- Edges of the page, for the vignette. -->
     <color name="parchment_edge">#8A6E45</color>
     <color name="icon_background">#EFE3C8</color>
+
+    <!-- Night paper: not an inversion — dark, still warm, ink that glows rather than glares. -->
+    <color name="night_background">#17140F</color>
+    <color name="night_ink_stroke">#E4DAC4</color>
+    <color name="night_ink_reply">#6FC79A</color>
+    <color name="night_edge">#000000</color>
 </resources>

@@ -123,6 +123,39 @@ Two things learned the hard way — keep them in mind before "fixing" the timeou
 elapsed ms, exception class) — never the API key. `adb logcat -s DiaryOracle` is the fastest way to
 diagnose a failed page.
 
+## Appearance settings
+
+`Appearance.kt` owns both the hands and the two palettes, so the view, the settings screen and the
+renderer cannot disagree. Two rules that are easy to break:
+
+- **The page reads its palette and hand once, at construction.** A settings change therefore only
+  takes effect when the view is rebuilt — `MainActivity.onResume` compares
+  `prefs.appearanceSignature()` and calls `recreate()`. The window background is also set in code, or
+  the old palette flashes before the page draws.
+- **A hand is resolved by name, never `R.font.x`**, so an optional font that is not in the repository
+  is not a compile error. `availableHands` only offers what is actually present, and `defaultHand`
+  prefers the optional local hand — adding this setting must not silently change what the diary
+  writes in. `SecurePrefs.hand(fallback)` takes that default rather than hardcoding one.
+
+Night paper is a warm near-black with pale ink, not an inversion: the reply's green is lightened
+(`night_ink_reply`) because the day green is unreadable on dark.
+
+### The rest of the settings
+
+Reply size, ink thickness, the pause before a page is sent, the writing pace, and how long a reply
+lingers are all adjustable. Several of these were constants that had to be rebuilt to tune, which is
+why they are settings now.
+
+- **Size and thickness are baked in at construction** (the glyph tracer is built with a size), so
+  both are in `appearanceSignature()` and change by rebuilding the view. The pause, pace and linger
+  are read afresh on each page and need no rebuild — do not add them to the signature.
+- **A slider's step must divide its default exactly.** The pause slider first stepped in 500 ms and
+  so could not represent 2.8 s: merely opening settings and pressing Save moved the pause to 2.5 s.
+  It steps in 200 ms for that reason. Check any new slider round-trips its default before trusting
+  it.
+- **"Until I write again" is a real case, not a large number** — `lingerPercent == 0` skips the fade
+  entirely, so the reply waits for the pen.
+
 ## Theme
 
 Aged parchment (`ink_background`) with a radial vignette drawn in `InkSurfaceView.onSizeChanged`;
@@ -139,11 +172,13 @@ flowing hand, stroke by stroke, then fades away". `scheduleReplyFade` in `InkSur
 `REPLY_HOLD_BASE_MS + length * REPLY_HOLD_PER_CHAR_MS` (capped), then animates `replyAlpha` to zero
 and calls `startNewPage`.
 
-The hold is **deliberately generous** — the timings here were raised once already after they read as
-too quick on the tablet. The cost is asymmetric: the pen clears the page the instant you want to
-write, so an over-long hold costs nothing, while a short one takes words away mid-sentence. Note the
-**cap** silently governs long replies; raising the per-character figure alone does nothing once it
-binds.
+The hold is **deliberately generous** — these timings were raised twice after reading as too quick on
+the tablet. The cost is asymmetric: the pen clears the page the instant you want to write, so an
+over-long hold costs nothing, while a short one takes words away mid-sentence.
+
+`REPLY_HOLD_MAX_MS` is now a safety net rather than a governor: at 110 ms/char it only binds past
+~1,500 characters, which `max_tokens = 300` puts out of reach. If you raise `max_tokens`, check the
+cap has not quietly started clamping long replies again.
 
 Only `REPLYING` fades. The **? guide** and a **failure notice** stay until the pen dismisses them —
 reference and recovery must not evaporate while being read or retried — and recall follows riddle in

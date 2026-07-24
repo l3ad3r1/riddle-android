@@ -1,6 +1,7 @@
 package com.riddleapp.diary
 
 import android.content.Intent
+import android.graphics.drawable.ColorDrawable
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
@@ -21,8 +22,18 @@ class MainActivity : AppCompatActivity() {
     private var longPressAnchorX = 0f
     private var longPressAnchorY = 0f
 
+    private lateinit var prefs: SecurePrefs
+    private var appearance = ""
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        prefs = SecurePrefs(this)
+        appearance = prefs.appearanceSignature()
+        // The window shows through before the page draws; match it so there is no flash of the
+        // other palette on launch or on return from settings.
+        window.setBackgroundDrawable(
+            ColorDrawable(Appearance.palette(this, prefs.darkMode).background)
+        )
         setContentView(R.layout.activity_main)
 
         val settingsButton = findViewById<View>(R.id.settings_button)
@@ -84,6 +95,20 @@ class MainActivity : AppCompatActivity() {
     override fun onPause() {
         super.onPause()
         cancelLongPress()
+    }
+
+    /**
+     * The page builds its palette and hand once, at construction, so a change made in settings only
+     * takes effect by rebuilding it. Recreating discards the current page — acceptable, since you
+     * cannot have been writing while you were on the settings screen.
+     */
+    override fun onResume() {
+        super.onResume()
+        val current = prefs.appearanceSignature()
+        if (current != appearance) {
+            appearance = current
+            recreate()
+        }
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {

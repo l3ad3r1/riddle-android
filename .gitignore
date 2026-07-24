@@ -16,6 +16,9 @@
 .cxx
 local.properties
 *.jks
+*.keystore
+# Release signing: the key and its passwords never leave this machine.
+signing.properties
 
 # Optional local reply font: ships without licence information, so it is not redistributed.
 # Drop it in and the diary uses it; without it, the bundled Dancing Script is used.

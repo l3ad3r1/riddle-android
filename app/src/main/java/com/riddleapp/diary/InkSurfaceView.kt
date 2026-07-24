@@ -72,7 +72,7 @@ class InkSurfaceView @JvmOverloads constructor(
             val total = replyStrokes.sumOf { it.size }
             if (revealedPoints < total) {
                 // The guide is reference, not a reply — it should not be savoured.
-                revealedPoints += if (state == State.GUIDE) POINTS_PER_TICK * 4 else POINTS_PER_TICK
+                revealedPoints += pointsPerTick(guide = state == State.GUIDE)
                 invalidate()
             } else if (replyComplete) {
                 // Written out in full. A reply is then left to be read and allowed to sink away;
@@ -93,15 +93,25 @@ class InkSurfaceView @JvmOverloads constructor(
             if (state != State.RECALLING) return
             val handTotal = recalledStrokes.sumOf { it.size }
             if (recalledRevealed < handTotal) {
-                recalledRevealed += POINTS_PER_TICK
+                recalledRevealed += pointsPerTick()
             } else if (revealedPoints < replyStrokes.sumOf { it.size }) {
-                revealedPoints += POINTS_PER_TICK
+                revealedPoints += pointsPerTick()
             } else {
                 return
             }
             invalidate()
             handler.postDelayed(this, REVEAL_TICK_MS)
         }
+    }
+
+    /**
+     * How far the pen moves each tick. Read afresh rather than cached so a change of pace takes
+     * effect on the next page without rebuilding the view. The guide is reference, not a reply, and
+     * is written out briskly whatever the chosen pace.
+     */
+    private fun pointsPerTick(guide: Boolean = false): Int {
+        val base = POINTS_PER_TICK * prefs.writingSpeedPercent / 100
+        return (if (guide) base * 4 else base).coerceAtLeast(1)
     }
 
     /** Keeps the thinking indicator visibly alive during a long wait. */
@@ -114,31 +124,23 @@ class InkSurfaceView @JvmOverloads constructor(
         }
     }
 
+    // Declared before every paint that reads them: Kotlin initializes properties in source order.
+    /** Chosen in settings; see [Appearance] for how a hand is resolved and why by name. */
+    private val palette = Appearance.palette(context, prefs.darkMode)
+    private val replyTypeface: Typeface = Appearance.typeface(context, prefs.hand(Appearance.defaultHand(context)))
+
     private val inkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.ink_stroke)
+        color = palette.stroke
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
     }
 
-    /**
-     * The reply hand. Prefers an optional local font — drop `aquiline.ttf` into `res/font/` and it is
-     * used automatically — otherwise the bundled Dancing Script. Looked up by name rather than by
-     * `R.font.aquiline` so the project still builds when that file is absent, which it is in the
-     * public repository: the font ships without licence information, so it is not redistributed.
-     */
-    private val replyTypeface: Typeface = loadReplyTypeface(context)
+    /** Baked in at construction; changing it in settings rebuilds the page. */
+    private val replyTextPx = prefs.replyTextSize.toFloat()
+    private val inkScale = prefs.inkThickness / 100f
 
-    private fun loadReplyTypeface(context: Context): Typeface {
-        val optional = resources.getIdentifier("aquiline", "font", context.packageName)
-        if (optional != 0) {
-            runCatching { ResourcesCompat.getFont(context, optional) }.getOrNull()?.let { return it }
-        }
-        return ResourcesCompat.getFont(context, R.font.dancing_script)
-            ?: Typeface.create("cursive", Typeface.NORMAL)
-    }
-
-    private val replyGlyphs = GlyphStrokes(replyTypeface, REPLY_TEXT_PX * resources.displayMetrics.density)
+    private val replyGlyphs = GlyphStrokes(replyTypeface, replyTextPx * resources.displayMetrics.density)
     private val replyScript = ReplyScript(replyGlyphs)
 
     /** The reply as traced pen paths, and how many points of it have been "written" so far. */
@@ -159,7 +161,7 @@ class InkSurfaceView @JvmOverloads constructor(
 
     /** Remembered ink is faded, so a recalled page never reads as today's page. */
     private val fadedInkPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.ink_stroke)
+        color = palette.stroke
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
@@ -168,7 +170,7 @@ class InkSurfaceView @JvmOverloads constructor(
     }
 
     private val replyPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.ink_reply)
+        color = palette.reply
         style = Paint.Style.STROKE
         strokeCap = Paint.Cap.ROUND
         strokeJoin = Paint.Join.ROUND
@@ -176,7 +178,7 @@ class InkSurfaceView @JvmOverloads constructor(
     }
 
     private val thinkingPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-        color = ContextCompat.getColor(context, R.color.ink_reply)
+        color = palette.reply
         alpha = 140
         textSize = 40f
     }
@@ -189,7 +191,7 @@ class InkSurfaceView @JvmOverloads constructor(
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
         if (w <= 0 || h <= 0) return
-        val edge = ContextCompat.getColor(context, R.color.parchment_edge)
+        val edge = palette.edge
         vignettePaint.shader = RadialGradient(
             w / 2f,
             h / 2f,
@@ -292,7 +294,7 @@ class InkSurfaceView @JvmOverloads constructor(
     private fun scheduleIdleCommit() {
         handler.removeCallbacks(idleRunnable)
         if (strokes.isNotEmpty()) {
-            handler.postDelayed(idleRunnable, IDLE_MS)
+            handler.postDelayed(idleRunnable, prefs.idlePauseMs)
         }
     }
 
@@ -403,8 +405,12 @@ class InkSurfaceView @JvmOverloads constructor(
      */
     private fun scheduleReplyFade() {
         if (replyFadeAnimator != null) return
-        val hold = (REPLY_HOLD_BASE_MS + replyText.length * REPLY_HOLD_PER_CHAR_MS)
+        // Zero means the reply stays until the pen clears it, so nothing is ever taken away.
+        val linger = prefs.lingerPercent
+        if (linger <= 0) return
+        val natural = (REPLY_HOLD_BASE_MS + replyText.length * REPLY_HOLD_PER_CHAR_MS)
             .coerceAtMost(REPLY_HOLD_MAX_MS)
+        val hold = natural * linger / 100
         replyFadeAnimator = ValueAnimator.ofInt(255, 0).apply {
             startDelay = hold
             duration = REPLY_FADE_MS
@@ -439,7 +445,7 @@ class InkSurfaceView @JvmOverloads constructor(
         fadeAlpha = 255
         fadeAnimator?.cancel()
         // Keep the reason clear of the writing it refers to.
-        val lineHeight = REPLY_TEXT_PX * resources.displayMetrics.density * REPLY_LINE_SPACING
+        val lineHeight = replyTextPx * resources.displayMetrics.density * REPLY_LINE_SPACING
         replyTopOverride = height - lineHeight * 2f
         handler.removeCallbacks(thinkingRunnable)
         handler.removeCallbacks(revealRunnable)
@@ -534,7 +540,7 @@ class InkSurfaceView @JvmOverloads constructor(
         val text = replyText
         if (text.isEmpty() || width == 0) return
         val margin = REPLY_MARGIN_DP * resources.displayMetrics.density
-        val lineHeight = REPLY_TEXT_PX * resources.displayMetrics.density * REPLY_LINE_SPACING
+        val lineHeight = replyTextPx * resources.displayMetrics.density * REPLY_LINE_SPACING
         // A conjured page keeps the original handwriting where it was written, so the date and the
         // old reply are placed clear of it rather than across it.
         val top = replyTopOverride?.coerceAtMost(height - lineHeight * 3f) ?: margin
@@ -655,12 +661,12 @@ class InkSurfaceView @JvmOverloads constructor(
     private fun mapPressureToWidth(pressure: Float): Float {
         val density = resources.displayMetrics.density
         val effective = if (pressure <= 0f) 0.5f else pressure
-        return (1.5f + effective * 5f) * density
+        return (1.5f + effective * 5f) * density * inkScale
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
-        canvas.drawColor(ContextCompat.getColor(context, R.color.ink_background))
+        canvas.drawColor(palette.background)
         if (vignettePaint.shader != null) {
             canvas.drawRect(0f, 0f, width.toFloat(), height.toFloat(), vignettePaint)
         }
@@ -749,7 +755,7 @@ class InkSurfaceView @JvmOverloads constructor(
          */
         private const val REPLY_HOLD_BASE_MS = 12_000L
         private const val REPLY_HOLD_PER_CHAR_MS = 110L
-        private const val REPLY_HOLD_MAX_MS = 75_000L
+        private const val REPLY_HOLD_MAX_MS = 180_000L
         private const val REPLY_FADE_MS = 5_000L
         private const val REPLY_TEXT_PX = 30f
         private const val REPLY_LINE_SPACING = 1.5f

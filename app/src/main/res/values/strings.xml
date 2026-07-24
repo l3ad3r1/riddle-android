@@ -17,6 +17,16 @@
     <!-- Summoned by drawing a large "?" alone on the page. Kept short so it fits without scrolling. -->
     <!-- Escapes are required: a literal newline in a string resource collapses to a space. -->
     <string name="guide_text">Write, then rest your pen. I read the page and answer here.\nWrite again while I am thinking, and I begin afresh.\nTurn your pen over to erase.\nAsk me: what do you remember?\nOr: show me what I wrote about the garden.\nPress and hold the mark in the corner for settings.\nDraw a ? for this page. Touch the pen to return.</string>
+    <string name="appearance">Appearance</string>
+    <string name="reply_hand">The hand the diary writes in</string>
+    <string name="dark_mode">Dark paper</string>
+    <string name="reply_size">Size of the diary\'s hand: %1$d</string>
+    <string name="ink_thickness">Thickness of your ink: %1$d%%</string>
+    <string name="writing">Writing</string>
+    <string name="idle_pause">Pause before the page is sent: %1$s s</string>
+    <string name="writing_pace">How fast the diary writes</string>
+    <string name="reply_lingers">How long a reply lingers</string>
+    <string name="memory">Memory</string>
     <string name="memory_enabled">Remember past pages</string>
     <string name="forget_all">Forget everything</string>
     <string name="memory_count">%1$d pages remembered, on this tablet only</string>
@@ -25,4 +35,16 @@
     <string name="forget_confirm_body">Every remembered page will be deleted from this tablet. This cannot be undone.</string>
     <string name="forget_confirm_yes">Forget</string>
     <string name="cancel">Cancel</string>
+
+    <string-array name="pace_labels">
+        <item>Unhurried</item>
+        <item>Natural</item>
+        <item>Brisk</item>
+    </string-array>
+    <string-array name="linger_labels">
+        <item>Briefly</item>
+        <item>Normal</item>
+        <item>A long while</item>
+        <item>Until I write again</item>
+    </string-array>
 </resources>

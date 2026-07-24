@@ -30,12 +30,32 @@ with its T-Pen.
 - **A guide.** Draw a large **?** and the diary explains itself.
 - **A failed page is never lost.** If the model cannot answer, your writing stays and the reason is
   written at the foot of the page; rest the pen to send it again.
+- **It fades.** A finished reply is left to be read, then sinks back into the paper, leaving a blank
+  page — or stays until you write again, if you prefer.
+
+## Settings
+
+Press and hold the mark in the top-right corner. It is pen-only like the page, so a finger long-press
+is the way in if your stylus is not to hand.
+
+| | |
+|---|---|
+| **Oracle** | API key, base URL, model. The key is held in `EncryptedSharedPreferences`. |
+| **Appearance** | The hand the diary writes in, dark paper, the size of its hand, the thickness of your ink. |
+| **Writing** | How long the pen must rest before a page is sent, how fast the diary writes, how long a reply lingers. |
+| **Memory** | Remember past pages on or off, how many are kept, and *Forget everything*. |
 
 ## Requirements
 
 - Android 8.0 (API 26) or newer, **arm64-v8a**
 - A stylus that reports as one (`TOOL_TYPE_STYLUS`)
 - Any OpenAI-compatible vision endpoint
+
+## Install
+
+Take the APK from the [latest release](https://github.com/l3ad3r1/riddle-android/releases/latest),
+allow installation from unknown sources, and open it. Then press and hold the mark in the top-right
+corner and set an API key, base URL, and a vision-capable model.
 
 The APK is arm64-only: ML Kit ships native libraries for every ABI and the filter keeps the build at
 ~17 MB instead of ~49 MB. Remove `abiFilters` in `app/build.gradle.kts` if you need 32-bit devices.

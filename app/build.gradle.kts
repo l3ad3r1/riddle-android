@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     id("com.android.application")
 }
@@ -11,16 +13,34 @@ android {
         minSdk = 26
         targetSdk = 36
         versionCode = 1
-        versionName = "0.1.0"
+        versionName = "1.0.0"
 
         // ML Kit ships native handwriting libs for every ABI, which quadruples the APK. The target
         // tablet is arm64-v8a; drop this filter if the app ever needs to run on 32-bit devices.
         ndk { abiFilters += "arm64-v8a" }
     }
 
+    // Release signing comes from an untracked signing.properties beside the project. Without it the
+    // release build is simply unsigned, so a clone still builds.
+    val signingProps = rootProject.file("signing.properties").takeIf { it.exists() }?.let {
+        Properties().apply { it.inputStream().use { stream -> load(stream) } }
+    }
+
+    signingConfigs {
+        if (signingProps != null) {
+            create("release") {
+                storeFile = rootProject.file(signingProps.getProperty("storeFile"))
+                storePassword = signingProps.getProperty("storePassword")
+                keyAlias = signingProps.getProperty("keyAlias")
+                keyPassword = signingProps.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = false
+            if (signingProps != null) signingConfig = signingConfigs.getByName("release")
         }
     }
 
